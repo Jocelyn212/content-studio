@@ -11,14 +11,15 @@ function ContentGeneratorApp() {
   const [result, setResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const modes = [
-    { id: "instagram", label: "Instagram" },
-    { id: "linkedin", label: "LinkedIn" },
-    { id: "x", label: "X / Twitter" },
-    { id: "tiktok", label: "TikTok" },
-    { id: "email", label: "Email" },
-    { id: "idea", label: "Ideas de contenido" },
+    { id: "instagram", label: "Instagram", icon: "📷" },
+    { id: "linkedin", label: "LinkedIn", icon: "💼" },
+    { id: "x", label: "X / Twitter", icon: "𝕏" },
+    { id: "tiktok", label: "TikTok", icon: "🎬" },
+    { id: "email", label: "Email", icon: "✉️" },
+    { id: "idea", label: "Ideas", icon: "💡" },
   ];
 
   const tones = [
