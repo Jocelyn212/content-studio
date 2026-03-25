@@ -1,11 +1,37 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import MainLayout from "../layouts/MainLayout.astro";
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<MainLayout title="Content Studio">
+  <section class="mx-auto flex min-h-screen max-w-5xl items-center px-6 py-16">
+    <div class="space-y-6">
+      <p class="text-sm uppercase tracking-[0.2em] text-studio-muted">
+        Content Studio
+      </p>
+
+      <h1 class="max-w-3xl text-5xl font-semibold leading-tight text-studio-ink">
+        Crea contenido con una estética más cuidada y menos genérica.
+      </h1>
+
+      <p class="max-w-2xl text-lg leading-8 text-studio-muted">
+        Una base visual cálida, elegante y pensada para sentirse más producto real
+        que demo improvisada.
+      </p>
+
+      <div class="flex gap-4">
+        <a
+          href="/app"
+          class="rounded-full bg-studio-clay px-6 py-3 text-sm font-medium text-white transition hover:bg-studio-clay-dark"
+        >
+          Abrir app
+        </a>
+
+        <button
+          class="rounded-full border border-studio-line px-6 py-3 text-sm font-medium text-studio-ink"
+        >
+          Ver ejemplo
+        </button>
+      </div>
+    </div>
+  </section>
+</MainLayout>

@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+
+@theme {
+  --color-studio-cream: #F7F3EE;
+  --color-studio-sand: #EFE8DE;
+  --color-studio-ink: #1F1B18;
+  --color-studio-muted: #6E6257;
+  --color-studio-clay: #B85C38;
+  --color-studio-clay-dark: #9E4E2F;
+  --color-studio-line: #D8CBBE;
+  --color-studio-blush: #EADFD3;
+}
