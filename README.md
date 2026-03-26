@@ -31,7 +31,7 @@ El enfoque es radicalmente simple: **menos fricción, más velocidad y contenido
 ## 📸 Demo y Capturas
 
 * **Demo Local:** `http://localhost:4321`
-* **Demo Online:** [AGREGAR_URL_PUBLICA_AQUÍ]
+* **Demo en producción:** [https://contentstudio-contentstudio-wnym98-d7f272-45-90-237-140.traefik.me/](https://contentstudio-contentstudio-wnym98-d7f272-45-90-237-140.traefik.me/)
 
 ![Interfaz Principal](https://res.cloudinary.com/pruebaweb/image/upload/v1774488671/Im%C3%A1genes%20de%20proyectos/Captura_de_pantalla_2026-03-25_a_las_20.48.38_zuqvuf.png)
 
@@ -39,13 +39,13 @@ El enfoque es radicalmente simple: **menos fricción, más velocidad y contenido
 
 ## 📦 Despliegue e Infraestructura
 
-El proyecto utiliza un flujo de despliegue moderno y simplificado:
+El despliegue se realizó con este flujo:
 
-1.  **CubePath:** Provisión de la máquina virtual (VPS) y red base.
-2.  **Dokploy:** Orquestación del despliegue, gestión del servicio y variables de entorno.
-3.  **Resultado:** Publicación continua (CD) y administración simple desde panel web.
+1.  **Creación de VPS en CubePath:** Se aprovisionó la máquina virtual donde corre el proyecto.
+2.  **Instalación y configuración de Dokploy:** Se levantó Dokploy para gestionar el servicio y las variables de entorno.
+3.  **Conexión con GitHub:** Se vinculó el repositorio para automatizar despliegues desde cambios en el código.
+4.  **Publicación en producción:** La aplicación quedó expuesta en una URL pública administrada desde Dokploy.
 
-> Consulta en `public/demo` las capturas del panel de Dokploy para documentar el flujo de despliegue end-to-end.
 
 ---
 
