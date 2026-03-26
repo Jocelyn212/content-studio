@@ -33,9 +33,7 @@ El enfoque es radicalmente simple: **menos fricción, más velocidad y contenido
 * **Demo Local:** `http://localhost:4321`
 * **Demo Online:** [AGREGAR_URL_PUBLICA_AQUÍ]
 
-| Interfaz Principal | Resultado Generado | Hooks y Visual Prompt |
-| :--- | :--- | :--- |
-| ![Vista principal](public/demo/pantalla-principal.png) | ![Resultado](public/demo/resultado-generado.png) | ![Hooks y Prompt](public/demo/hooks-y-prompt.gif) |
+![Interfaz Principal](https://res.cloudinary.com/pruebaweb/image/upload/v1774488671/Im%C3%A1genes%20de%20proyectos/Captura_de_pantalla_2026-03-25_a_las_20.48.38_zuqvuf.png)
 
 ---
 
