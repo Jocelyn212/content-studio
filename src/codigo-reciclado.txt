@@ -1,0 +1,296 @@
+import { useState } from "react";
+
+function ContentGeneratorApp() {
+  const [selectedMode, setSelectedMode] = useState("instagram");
+  const [selectedTone, setSelectedTone] = useState("elegante");
+  const [prompt, setPrompt] = useState("");
+  const [businessType, setBusinessType] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [businessGoal, setBusinessGoal] = useState("");
+  const [offer, setOffer] = useState("");
+  const [result, setResult] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const modes = [
+    { id: "instagram", label: "Instagram" },
+    { id: "linkedin", label: "LinkedIn" },
+    { id: "x", label: "X / Twitter" },
+    { id: "tiktok", label: "TikTok" },
+    { id: "email", label: "Email" },
+    { id: "idea", label: "Ideas" },
+  ];
+
+  const tones = [
+    { id: "elegante", label: "Elegante" },
+    { id: "cercano", label: "Cercano" },
+    { id: "profesional", label: "Profesional" },
+    { id: "creativo", label: "Creativo" },
+  ];
+
+  const handleGenerate = async () => {
+    if (!prompt.trim() || isLoading) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mode: selectedMode,
+          tone: selectedTone,
+          prompt,
+          businessType,
+          targetAudience,
+          businessGoal,
+          offer,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo generar el contenido.");
+      }
+
+      setResult(data.result || "");
+    } catch (error) {
+      setResult("Ha ocurrido un error al generar el contenido.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCopyResult = async () => {
+    if (!result.trim()) return;
+
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error("No se pudo copiar el contenido.");
+    }
+  };
+
+  const handleClear = () => {
+    setPrompt("");
+    setBusinessType("");
+    setTargetAudience("");
+    setBusinessGoal("");
+    setOffer("");
+    setResult("");
+  };
+
+  const parsedSections = result
+    ? result
+        .split(/\n(?=\d+\)\s)/g)
+        .map((section) => section.trim())
+        .filter(Boolean)
+    : [];
+
+  const normalizeText = (text) =>
+    text
+      .replace(/\*\*/g, "")
+      .replace(/^\s*-\s?/gm, "• ")
+      .replace(/"{2,}/g, '"');
+
+  return (
+    <div className="space-y-5">
+      <section className="rounded-3xl border border-studio-line bg-white p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-studio-muted">
+          1) Elige red social
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {modes.map((mode) => {
+            const isActive = selectedMode === mode.id;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setSelectedMode(mode.id)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-studio-clay text-white"
+                    : "border border-studio-line bg-white text-studio-ink hover:border-studio-clay"
+                }`}
+              >
+                {mode.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-studio-line bg-white p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-studio-muted">
+          2) Elige tono
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {tones.map((tone) => {
+            const isActive = selectedTone === tone.id;
+            return (
+              <button
+                key={tone.id}
+                type="button"
+                onClick={() => setSelectedTone(tone.id)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  isActive
+                    ? "bg-studio-ink text-white"
+                    : "border border-studio-line bg-white text-studio-muted hover:border-studio-ink"
+                }`}
+              >
+                {tone.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="space-y-4">
+          <div className="rounded-3xl border border-studio-line bg-white p-5">
+            <p className="text-sm font-medium text-studio-ink">3) Escribe tu idea</p>
+            <p className="mt-1 text-sm text-studio-muted">
+              Cuenta en una frase lo que quieres publicar.
+            </p>
+
+            <textarea
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              className="mt-4 min-h-56 w-full resize-none rounded-2xl border border-studio-line bg-studio-cream px-4 py-3 text-sm text-studio-ink outline-none placeholder:text-studio-muted"
+              placeholder="Ejemplo: Quiero promocionar mis pasteles sin lactosa para captar pedidos por Instagram."
+            />
+
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isLoading || !prompt.trim()}
+                className="flex-1 rounded-full bg-studio-clay px-6 py-3 text-sm font-medium text-white transition hover:bg-studio-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoading ? "Generando..." : "Generar"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleClear}
+                className="rounded-full border border-studio-line px-5 py-3 text-sm font-medium text-studio-ink transition hover:bg-studio-sand"
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-studio-line bg-white p-4">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((value) => !value)}
+              className="flex w-full items-center justify-between text-sm font-medium text-studio-ink"
+            >
+              <span>Opciones avanzadas (opcional)</span>
+              <span className={`transition ${showAdvanced ? "rotate-180" : ""}`}>
+                v
+              </span>
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-4 grid gap-3 border-t border-studio-line pt-4 sm:grid-cols-2">
+                <input
+                  value={businessType}
+                  onChange={(event) => setBusinessType(event.target.value)}
+                  className="w-full rounded-2xl border border-studio-line bg-studio-cream px-3 py-2 text-xs text-studio-ink outline-none placeholder:text-studio-muted"
+                  placeholder="Tu negocio/profesion"
+                />
+                <input
+                  value={targetAudience}
+                  onChange={(event) => setTargetAudience(event.target.value)}
+                  className="w-full rounded-2xl border border-studio-line bg-studio-cream px-3 py-2 text-xs text-studio-ink outline-none placeholder:text-studio-muted"
+                  placeholder="Audiencia objetivo"
+                />
+                <input
+                  value={businessGoal}
+                  onChange={(event) => setBusinessGoal(event.target.value)}
+                  className="w-full rounded-2xl border border-studio-line bg-studio-cream px-3 py-2 text-xs text-studio-ink outline-none placeholder:text-studio-muted"
+                  placeholder="Objetivo"
+                />
+                <input
+                  value={offer}
+                  onChange={(event) => setOffer(event.target.value)}
+                  className="w-full rounded-2xl border border-studio-line bg-studio-cream px-3 py-2 text-xs text-studio-ink outline-none placeholder:text-studio-muted"
+                  placeholder="Oferta/servicio"
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-studio-line bg-white p-5">
+          <div className="flex items-center justify-between border-b border-studio-line pb-3">
+            <p className="text-sm font-medium text-studio-ink">4) Resultado</p>
+            {result && (
+              <button
+                type="button"
+                onClick={handleCopyResult}
+                className="rounded-full border border-studio-line bg-white px-3 py-1 text-xs font-medium text-studio-ink transition hover:bg-studio-blush"
+              >
+                {copied ? "Copiado" : "Copiar"}
+              </button>
+            )}
+          </div>
+
+          <div className="mt-4">
+            {!result && (
+              <div className="rounded-2xl border border-dashed border-studio-line bg-studio-cream p-5">
+                <p className="text-sm text-studio-muted">
+                  Tu contenido aparecera aqui al generar.
+                </p>
+              </div>
+            )}
+
+            {result && parsedSections.length > 1 && (
+              <div className="space-y-3">
+                {parsedSections.map((section, index) => {
+                  const [rawTitle, ...rawBody] = section.split("\n");
+                  const title = normalizeText(rawTitle.replace(/^\d+\)\s*/, ""));
+                  const body = normalizeText(rawBody.join("\n"));
+
+                  return (
+                    <article
+                      key={`${title}-${index}`}
+                      className="rounded-2xl border border-studio-line bg-studio-cream p-4"
+                    >
+                      <h3 className="text-sm font-semibold text-studio-ink">
+                        {index + 1}. {title}
+                      </h3>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-7 text-studio-muted">
+                        {body}
+                      </p>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+
+            {result && parsedSections.length <= 1 && (
+              <div className="rounded-2xl border border-studio-line bg-studio-cream p-4">
+                <p className="whitespace-pre-line text-sm leading-7 text-studio-muted">
+                  {normalizeText(result)}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+export default ContentGeneratorApp;

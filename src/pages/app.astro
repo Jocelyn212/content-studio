@@ -4,21 +4,16 @@ import ContentGeneratorApp from "../components/react/app/ContentGeneratorApp.jsx
 ---
 
 <MainLayout title="App · Content Studio">
-  <section class="mx-auto min-h-screen max-w-6xl px-6 py-10">
-    <div class="mb-10 flex items-end justify-between gap-6">
-      <div class="space-y-3">
-        <p class="text-sm uppercase tracking-[0.2em] text-studio-muted">
-          Workspace
-        </p>
-        <h1 class="text-4xl font-semibold tracking-tight text-studio-ink">
-          Crea algo útil y bonito.
-        </h1>
-        <p class="max-w-2xl text-base leading-7 text-studio-muted">
-          Elige qué quieres generar y empieza a dar forma a tu contenido.
-        </p>
-      </div>
+  <section class="relative isolate overflow-hidden bg-slate-950">
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute -top-28 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-teal-500/20 blur-3xl"></div>
+      <div class="absolute -bottom-24 right-0 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl"></div>
+      <div class="absolute bottom-12 left-6 h-44 w-44 rounded-full bg-emerald-400/10 blur-3xl"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,#0f172a_0%,#020617_55%)]"></div>
     </div>
 
-    <ContentGeneratorApp client:load />
+    <div class="relative">
+      <ContentGeneratorApp client:load />
+    </div>
   </section>
 </MainLayout>

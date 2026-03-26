@@ -1,146 +1,425 @@
-export async function generateWithGroq({
-  mode,
-  tone,
-  prompt,
-  businessType,
-  targetAudience,
-  businessGoal,
-  offer,
-}: {
-  mode: string;
-  tone: string;
+/**
+ * Tipos para el generador de contenido
+ */
+type ContentMode = "instagram" | "linkedin" | "x" | "tiktok" | "email" | "idea";
+type ContentTone = "elegante" | "cercano" | "profesional" | "creativo";
+
+interface GenerateWithGroqParams {
+  mode: ContentMode;
+  tone: ContentTone;
   prompt: string;
   businessType?: string;
   targetAudience?: string;
   businessGoal?: string;
   offer?: string;
-}) {
-  if (!import.meta.env.GROQ_API_KEY) {
-    throw new Error("Falta GROQ_API_KEY en el entorno.");
-  }
+}
 
-  const modeInstructions: Record<string, string> = {
-    instagram:
-      "Genera contenido para Instagram orientado a crecimiento, comunidad y conversion.",
-    linkedin:
-      "Genera contenido para LinkedIn enfocado en autoridad, confianza y oportunidades de negocio.",
-    x: "Genera contenido para X/Twitter que sea directo, valioso y con alto potencial de interaccion.",
-    tiktok:
-      "Genera guion corto para video tipo TikTok/Reel con gancho inicial, desarrollo y cierre con accion recomendada.",
-    email: "Genera un email bien redactado, claro y natural.",
-    idea:
-      "Genera ideas de contenido utiles, originales y faciles de ejecutar para negocio en redes.",
+interface GroqResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+  error?: {
+    message: string;
   };
+}
 
-  const toneInstructions: Record<string, string> = {
-    elegante: "Usa un tono elegante, cuidado y natural.",
-    cercano: "Usa un tono cercano, amable y fácil de leer.",
-    profesional: "Usa un tono profesional, claro y confiable.",
-    creativo: "Usa un tono creativo, fresco y con personalidad.",
-  };
+type AIProvider = "auto" | "groq" | "openrouter";
 
-  const instruction =
-    modeInstructions[mode] ||
-    "Genera contenido util, claro y bien redactado en espanol para crecimiento en redes.";
+/**
+ * Mapeo de tonos a instrucciones claras
+ */
+const toneInstructions: Record<ContentTone, string> = {
+  elegante: "Tono elegante, cuidado y natural.",
+  cercano: "Tono cercano, amable y fácil de leer.",
+  profesional: "Tono profesional, claro y confiable.",
+  creativo: "Tono creativo, fresco y con personalidad.",
+};
 
-  const toneInstruction =
-    toneInstructions[tone] || "Usa un tono natural y bien equilibrado.";
-
-  const modeOutputRules: Record<string, string> = {
-    instagram:
-      "Texto principal: 80-160 palabras, con estructura facil de leer y accion recomendada al final. Hashtags: 8-12.",
-    linkedin:
-      "Texto principal: 120-220 palabras, profesional, con aprendizajes claros y accion recomendada final. Hashtags: 3-6.",
-    x:
-      "Texto principal: maximo 260 caracteres. Una sola idea, directo, sin relleno. Accion recomendada: maximo 80 caracteres. Hashtags: 2-4. Version alternativa breve: maximo 140 caracteres.",
-    tiktok:
-      "Texto principal como guion corto: gancho (1 linea), desarrollo (2-4 lineas), cierre con accion recomendada (1 linea). Hashtags: 4-8.",
-    email:
-      "Texto principal en formato email: asunto sugerido + cuerpo claro + accion recomendada final. Hashtags: no incluir.",
-    idea:
-      "Entrega una idea accionable con pasos concretos de ejecucion. Hashtags: 3-6 opcionales.",
-  };
-
-  const outputRule =
-    modeOutputRules[mode] ||
-    "Respuesta clara y accionable, ajustada al canal elegido y sin texto innecesario.";
-
-  const creativeAngles = [
-    "mito vs realidad",
-    "error comun y solucion simple",
-    "antes y despues",
-    "mini historia realista",
-    "lista rapida de pasos",
-    "pregunta incomoda que activa accion",
-    "objecion tipica y respuesta",
-    "beneficio concreto en 7 dias",
-  ];
-
-  const hookStylesByMode: Record<string, string[]> = {
-    instagram: [
-      "gancho emocional",
-      "gancho aspiracional",
-      "gancho de transformacion",
-    ],
-    linkedin: [
-      "gancho profesional",
-      "gancho de aprendizaje",
-      "gancho de credibilidad",
-    ],
-    x: ["gancho directo", "dato contundente", "opinion util"],
-    tiktok: ["gancho de 3 segundos", "gancho visual", "gancho de problema"],
-    email: ["asunto con beneficio", "asunto con curiosidad", "asunto con urgencia"],
-    idea: ["angulo inesperado", "angulo practico", "angulo de nicho"],
-  };
-
-  const strategyContext = [
-    businessType ? `Tipo de negocio/profesion: ${businessType}` : null,
-    targetAudience ? `Audiencia ideal: ${targetAudience}` : null,
-    businessGoal ? `Objetivo principal: ${businessGoal}` : null,
-    offer ? `Oferta o servicio clave: ${offer}` : null,
+/**
+ * Construye el prompt específico para cada modo
+ * Instrucciones claras y directas, sin over-engineering
+ */
+const buildPromptByMode = (
+  mode: ContentMode,
+  tone: ContentTone,
+  params: GenerateWithGroqParams
+): string => {
+  const toneText = toneInstructions[tone] || "Tono natural y equilibrado.";
+  const contextLines = [
+    params.businessType && `Negocio: ${params.businessType}`,
+    params.targetAudience && `Audiencia: ${params.targetAudience}`,
+    params.businessGoal && `Objetivo: ${params.businessGoal}`,
+    params.offer && `Oferta: ${params.offer}`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const seedSource = `${prompt}|${businessType || ""}|${targetAudience || ""}|${businessGoal || ""}|${offer || ""}|${Date.now()}`;
-  const hash = Array.from(seedSource).reduce(
-    (acc, char) => acc + char.charCodeAt(0),
-    0
-  );
-  const selectedAngle = creativeAngles[hash % creativeAngles.length];
-  const hookOptions = hookStylesByMode[mode] || ["gancho claro"];
-  const selectedHook = hookOptions[hash % hookOptions.length];
+  const context = contextLines ? `\nContexto:\n${contextLines}` : "";
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${import.meta.env.GROQ_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Eres un estratega de contenido para redes sociales enfocado en pequenos negocios, influencers y profesionales que no dominan marketing digital. Responde siempre en espanol claro y accionable. Entrega textos listos para publicar y faciles de ejecutar. Si la solicitud del usuario es simple, responde de forma breve. No te enrolles. Prohibido usar plantillas genericas repetitivas.",
-        },
-        {
-          role: "user",
-          content: `${instruction}\n${toneInstruction}\n\nReglas del canal elegido:\n${outputRule}\n\nVariacion creativa obligatoria para esta respuesta:\n- Angulo: ${selectedAngle}\n- Tipo de gancho: ${selectedHook}\n\nContexto de negocio:\n${strategyContext || "No proporcionado."}\n\nSolicitud del usuario:\n${prompt}\n\nDevuelve la respuesta usando este formato exacto:\n1) Idea central\n2) Texto principal listo para publicar\n3) Accion recomendada\n4) Hashtags sugeridos\n5) Version alternativa breve\n6) Prompt para generar imagen en otra IA\n\nReglas obligatorias finales:\n- Cumple los limites del canal sin excepcion.\n- Si superas un limite, reescribe antes de responder.\n- No agregues explicaciones fuera de los 6 puntos.\n- Evita frases vacias como: "descubre", "transforma tu estrategia", "no te pierdas la oportunidad" salvo que el contexto lo justifique.\n- Usa minimo 2 detalles concretos del negocio o de la solicitud (producto, problema, audiencia, resultado u oferta).\n- Hashtags: prioriza nicho y contexto real; evita listas genericas.`,
-        },
-      ],
-      temperature: 0.9,
-      top_p: 0.95,
-      max_tokens: mode === "x" ? 320 : 700,
-    }),
-  });
+  const modePrompts: Record<ContentMode, string> = {
+    instagram: `Genera contenido para Instagram que valga la pena compartir.
+Límites: 80-160 palabras, estructura clara, gancho inicial, acción recomendada, 8-12 hashtags.
+${toneText}
+Solicitud: ${params.prompt}${context}
+Devuelve SOLO el contenido listo para publicar. Sin explicaciones.`,
 
-  const data = await response.json();
+    linkedin: `Genera contenido profesional para LinkedIn que genere engagement.
+Límites: 120-220 palabras, tono de autoridad, aprendizaje claro, acción recomendada, 3-6 hashtags.
+${toneText}
+Solicitud: ${params.prompt}${context}
+Devuelve SOLO el contenido listo para publicar. Sin explicaciones.`,
 
-  if (!response.ok) {
-    throw new Error(data?.error?.message || "Error al consultar Groq.");
+    x: `Genera un tweet/X que impacte.
+Límites: Máx 260 caracteres para el contenido principal. Una sola idea, directa, sin relleno. Acción recomendada: máx 80 caracteres. Hashtags: 2-4.
+${toneText}
+Solicitud: ${params.prompt}${context}
+Devuelve SOLO el tweet y la acción. Sin explicaciones.`,
+
+    tiktok: `Genera un guion corto para un video TikTok/Reel.
+Límites: Gancho inicial (1 línea), desarrollo (2-4 líneas), cierre con acción (1 línea). Hashtags: 4-8.
+${toneText}
+Solicitud: ${params.prompt}${context}
+Devuelve SOLO el guion listo para filmar. Sin explicaciones.`,
+
+    email: `Genera un email profesional, claro y natural.
+Estructura: Asunto sugerido + cuerpo claro + acción recomendada final.
+${toneText}
+Solicitud: ${params.prompt}${context}
+Devuelve SOLO el email. Sin explicaciones adicionales.`,
+
+    idea: `Genera un banco de ideas de contenido útiles, originales y ejecutables.
+Entrega: 10-12 ideas diferentes (variar ángulos, formatos, objetivos).
+Incluye para cada idea: título, ángulo, formato sugerido (reel/carrusel/post/hilo), gancho inicial.
+${toneText}
+Solicitud: ${params.prompt}${context}
+Devuelve SOLO las ideas en formato claro. Sin explicaciones. Alterna vocabulario, no repitas estructura.`,
+  };
+
+  return modePrompts[mode] || modePrompts.instagram;
+};
+
+const callGroqOnly = async ({
+  userMessage,
+  maxTokens,
+  temperature,
+}: {
+  userMessage: string;
+  maxTokens: number;
+  temperature: number;
+}): Promise<string> => {
+  const apiKey = import.meta.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error("GROQ_API_KEY no está configurado.");
   }
 
-  return data?.choices?.[0]?.message?.content?.trim() || "";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            {
+              role: "user",
+              content: userMessage,
+            },
+          ],
+          temperature,
+          top_p: 0.9,
+          max_tokens: maxTokens,
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    const data = (await response.json()) as GroqResponse;
+
+    if (!response.ok) {
+      throw new Error(data?.error?.message || `Error en Groq: ${response.status}`);
+    }
+
+    const content = data?.choices?.[0]?.message?.content?.trim();
+
+    if (!content) {
+      throw new Error("Groq devolvió una respuesta vacía.");
+    }
+
+    return content;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw new Error("La solicitud a Groq tardó demasiado tiempo.");
+      }
+      throw error;
+    }
+
+    throw new Error("Error desconocido al consultar Groq.");
+  }
+};
+
+const callOpenRouter = async ({
+  userMessage,
+  maxTokens,
+  temperature,
+}: {
+  userMessage: string;
+  maxTokens: number;
+  temperature: number;
+}): Promise<string> => {
+  const apiKey = import.meta.env.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY no está configurado.");
+  }
+
+  const openRouterModel =
+    import.meta.env.OPENROUTER_MODEL || "openrouter/free";
+  const referer = import.meta.env.OPENROUTER_SITE_URL || "http://localhost:4321";
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": referer,
+          "X-Title": "Content Studio",
+        },
+        body: JSON.stringify({
+          model: openRouterModel,
+          messages: [
+            {
+              role: "user",
+              content: userMessage,
+            },
+          ],
+          temperature,
+          top_p: 0.9,
+          max_tokens: maxTokens,
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    const data = (await response.json()) as GroqResponse;
+
+    if (!response.ok) {
+      throw new Error(data?.error?.message || `Error en OpenRouter: ${response.status}`);
+    }
+
+    const content = data?.choices?.[0]?.message?.content?.trim();
+
+    if (!content) {
+      throw new Error("OpenRouter devolvió una respuesta vacía.");
+    }
+
+    return content;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw new Error("La solicitud a OpenRouter tardó demasiado tiempo.");
+      }
+      throw error;
+    }
+
+    throw error;
+  }
+};
+
+const callAI = async ({
+  provider,
+  userMessage,
+  maxTokens,
+  temperature,
+}: {
+  provider: AIProvider;
+  userMessage: string;
+  maxTokens: number;
+  temperature: number;
+}): Promise<string> => {
+  if (provider === "groq") {
+    return callGroqOnly({ userMessage, maxTokens, temperature });
+  }
+
+  if (provider === "openrouter") {
+    return callOpenRouter({ userMessage, maxTokens, temperature });
+  }
+
+  try {
+    return await callGroqOnly({ userMessage, maxTokens, temperature });
+  } catch (groqError) {
+    console.warn("Groq falló en modo auto. Se usará OpenRouter.", groqError);
+    return callOpenRouter({ userMessage, maxTokens, temperature });
+  }
+};
+
+const buildImagePrompt = (
+  params: GenerateWithGroqParams,
+  generatedContent: string
+): string => {
+  const contextLines = [
+    params.businessType && `Negocio: ${params.businessType}`,
+    params.targetAudience && `Audiencia: ${params.targetAudience}`,
+    params.businessGoal && `Objetivo: ${params.businessGoal}`,
+    params.offer && `Oferta: ${params.offer}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return `Crea UN SOLO prompt para generar imagen en IA (Midjourney/Flux/SDXL), en español, listo para copiar.
+Modo de contenido: ${params.mode}
+Tono: ${params.tone}
+Idea original del usuario: ${params.prompt}
+Contenido generado para redes: ${generatedContent}
+${contextLines ? `Contexto de marca:\n${contextLines}` : ""}
+
+Reglas:
+- Devuelve solo el prompt final, sin introducciones.
+- Máximo 60 palabras.
+- Debe ser visual, concreto, comercial y coherente con la publicación.
+- Incluye estilo visual, iluminación, encuadre y emoción.
+- No uses listas ni comillas.`;
+};
+
+const buildHooksPrompt = (
+  params: GenerateWithGroqParams,
+  generatedContent: string
+): string => {
+  return `Genera exactamente 5 variantes de hook (primera frase) para este contenido.
+Modo: ${params.mode}
+Tono: ${params.tone}
+Idea original: ${params.prompt}
+Contenido base: ${generatedContent}
+
+Reglas obligatorias:
+- Devuelve solo 5 lineas.
+- Una variante por linea.
+- Cada hook debe tener maximo 16 palabras.
+- Sin explicaciones, sin titulos, sin texto adicional.
+- No repitas estructuras ni palabras iniciales en todas las lineas.`;
+};
+
+const parseHooks = (raw: string): string[] => {
+  const cleaned = raw
+    .split("\n")
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^[-*]\s*/, "")
+        .replace(/^\d+[.)]\s*/, "")
+        .replace(/^"|"$/g, "")
+    )
+    .filter(Boolean);
+
+  return Array.from(new Set(cleaned)).slice(0, 5);
+};
+
+/**
+ * Genera contenido con Groq
+ * Entrada desde el frontend → Prompt específico → Respuesta directa
+ */
+export async function generateWithGroq(
+  params: GenerateWithGroqParams,
+  provider: AIProvider = "auto"
+): Promise<string> {
+  // Validaciones básicas
+  if (!params.prompt || typeof params.prompt !== "string") {
+    throw new Error("El prompt es obligatorio y debe ser texto.");
+  }
+
+  // Construir el prompt según el modo
+  const userMessage = buildPromptByMode(
+    params.mode,
+    params.tone,
+    params
+  );
+
+  // Configurar timeouts y limite de tokens por modo
+  const maxTokensByMode: Record<ContentMode, number> = {
+    instagram: 500,
+    linkedin: 700,
+    x: 320,
+    tiktok: 400,
+    email: 600,
+    idea: 1100,
+  };
+
+  const maxTokens = maxTokensByMode[params.mode] || 700;
+  return callAI({
+    provider,
+    userMessage,
+    maxTokens,
+    temperature: 0.4,
+  });
 }
+
+export async function generateImagePromptWithGroq(
+  params: GenerateWithGroqParams,
+  generatedContent: string,
+  provider: AIProvider = "auto"
+): Promise<string> {
+  if (!generatedContent?.trim()) {
+    throw new Error("Se necesita contenido generado para crear el prompt de imagen.");
+  }
+
+  const userMessage = buildImagePrompt(params, generatedContent);
+
+  return callAI({
+    provider,
+    userMessage,
+    maxTokens: 180,
+    temperature: 0.35,
+  });
+}
+
+export async function generateHooksWithGroq(
+  params: GenerateWithGroqParams,
+  generatedContent: string,
+  provider: AIProvider = "auto"
+): Promise<string[]> {
+  if (!generatedContent?.trim()) {
+    throw new Error("Se necesita contenido generado para crear hooks.");
+  }
+
+  const userMessage = buildHooksPrompt(params, generatedContent);
+
+  const raw = await callAI({
+    provider,
+    userMessage,
+    maxTokens: 220,
+    temperature: 0.45,
+  });
+
+  const hooks = parseHooks(raw);
+
+  if (!hooks.length) {
+    throw new Error("No se pudieron generar hooks.");
+  }
+
+  return hooks;
+}
+
+export type { AIProvider, GenerateWithGroqParams };
